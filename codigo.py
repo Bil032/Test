@@ -12,7 +12,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Estilo CSS personalizado para mejorar las métricas y diseño general
+# Estilo CSS personalizado para métricas
 st.markdown(
     """
     <style>
@@ -30,13 +30,12 @@ st.markdown(
 )
 
 
-# 2. CARGA Y PROCESAMIENTO DE DATOS (CON CACHÉ)
+# 2. CARGA Y PROCESAMIENTO DE DATOS
 @st.cache_data
 def cargar_datos():
-  # Lee el archivo Excel de la misma carpeta
   df = pd.read_excel("Ventas_y_Rendimiento_Operativo_500.xlsx")
 
-  # Asegurar tipos de datos
+  # Convertir a datetime
   df["Fecha"] = pd.to_datetime(df["Fecha"])
 
   # Cálculos de Métricas
@@ -65,7 +64,6 @@ rango_fechas = st.sidebar.date_input(
     max_value=fecha_max,
 )
 
-# Validar selección de fechas
 if isinstance(rango_fechas, tuple) and len(rango_fechas) == 2:
   f_inicio, f_fin = rango_fechas
 else:
@@ -73,17 +71,15 @@ else:
 
 # Filtro de Región
 regiones_opt = ["Todas"] + sorted(list(df_raw["Region"].unique()))
-region_sel = st.sidebar.selectbox("Región", opciones := regiones_opt)
+region_sel = st.sidebar.selectbox("Región", regiones_opt)
 
 # Filtro de Canal de Venta
 canales_opt = ["Todos"] + sorted(list(df_raw["Canal_Venta"].unique()))
-canal_sel = st.sidebar.selectbox("Canal de Venta", opciones := canales_opt)
+canal_sel = st.sidebar.selectbox("Canal de Venta", canales_opt)
 
 # Filtro de Categoría
 categorias_opt = ["Todas"] + sorted(list(df_raw["Categoria"].unique()))
-categoria_sel = st.sidebar.selectbox(
-    "Categoría de Producto", opciones := categorias_opt
-)
+categoria_sel = st.sidebar.selectbox("Categoría de Producto", categorias_opt)
 
 # APLICACIÓN DE FILTROS AL DATAFRAME
 df_filtrado = df_raw[
@@ -108,14 +104,14 @@ st.markdown(
 )
 st.divider()
 
-# Validar si el filtro devuelve datos
+# Validar datos
 if df_filtrado.empty:
   st.warning(
       "⚠️ No se encontraron registros con los filtros seleccionados."
       " Por favor, ajusta los criterios en el panel lateral."
   )
 else:
-  # 5. TARJETAS DE KPIS (TARJETAS MONITOREO)
+  # 5. TARJETAS DE KPIS
   col1, col2, col3, col4 = st.columns(4)
 
   venta_neta_total = df_filtrado["Venta_Neta"].sum()
@@ -197,7 +193,7 @@ else:
 
   col_graf3, col_graf4 = st.columns(2)
 
-  # [1, 0]: Participación de venta por canal (Gráfico Donut)
+  # [1, 0]: Participación de venta por canal (Gráfico Donut) - CORREGIDO AQUÍ
   with col_graf3:
     df_canal = (
         df_filtrado.groupby("Canal_Venta")["Venta_Neta"].sum().reset_index()
@@ -211,9 +207,8 @@ else:
         hole=0.5,
         color_discrete_sequence=px.colors.qualitative.Set2,
     )
-    fig3.update_traces(
-        textinfo="percent+label", textposition="inside", fontweight="bold"
-    )
+    # Se eliminó el parámetro no válido 'fontweight'
+    fig3.update_traces(textinfo="percent+label", textposition="inside")
     fig3.update_layout(template="plotly_white", height=380, showlegend=False)
     st.plotly_chart(fig3, use_container_width=True)
 
@@ -266,7 +261,6 @@ else:
         use_container_width=True,
     )
 
-    # Botón para descargar los datos filtrados en CSV
     csv = df_filtrado.to_csv(index=False).encode("utf-8")
     st.download_button(
         label="📥 Descargar datos filtrados (CSV)",
